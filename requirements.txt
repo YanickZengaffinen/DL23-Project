@@ -1,0 +1,11 @@
+torch
+torchvision
+
+hypnettorch
+learn2learn
+torchattacks
+
+scikit-learn
+matplotlib
+pandas
+numpy==1.22.4 # unfortunately, hypnettorch uses now removed numpy features
