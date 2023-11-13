@@ -156,4 +156,4 @@ def main(
 
 
 if __name__ == '__main__':
-    main(num_iterations=100)
+    main(num_iterations=100, cuda=torch.cuda.is_available())
