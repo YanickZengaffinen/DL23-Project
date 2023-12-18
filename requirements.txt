@@ -4,6 +4,7 @@ torchvision
 hypnettorch
 learn2learn
 torchattacks
+torchmetrics
 
 scikit-learn
 matplotlib
