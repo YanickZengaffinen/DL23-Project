@@ -3,13 +3,20 @@ import torch.nn as nn
 
 # Extend from this class to specify your own method
 class ModelWrapper:
-    def __init__(self, ways: int, shots: int) -> None:
+    def __init__(self) -> None:
         self._model: nn.Module = None
-        self._ways = ways
-        self._shots = shots
+        self.ways: int = 0
+        self.shots: int = 0
+
+    def init_model(self, ways: int, shots: int):
+        """ Load a completely fresh version of the model that can handle the ways x shots scenario """
+        self._model = None
+        self.ways = ways
+        self.shots = shots
+        raise NotImplementedError()
 
     def reset_model(self):
-        """ Loads a completely fresh version of the model (= how it was directly after training) """
+        """ Resets the loaded model to the state it was directly after training """
         # Note: potentially it may be sufficient to load the model once (if inference is side-effect free)
         self._model = None
         raise NotImplementedError()

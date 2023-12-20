@@ -6,24 +6,17 @@ from evaluation.attacker import Attacker, PGDAttacker, Natural
 from evaluation.datasets import TestDataset
 from evaluation.model_wrapper import ModelWrapper
 
-models: Dict[ModelWrapper] = {
-    # Your model/method extends from ModelWrapper and goes here
-    'Test': ModelWrapper(),
-}
-
-def run_all_scenarios_for_method(model_name: str, num_tasks: int = 1000):
+def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000):
     # Runs all the attack scenarios from the proposal on the specified model
-    model = models[model_name]
-
     meta_scenarios = [
         { 'ways': 5, 'shots': 1 },
         { 'ways': 5, 'shots': 5 },
     ]
 
     pgd_attackers = [
-        { 'steps': 20, 'epsilon': 2, 'alpha': 2 },
-        { 'steps': 20, 'epsilon': 4, 'alpha': 2 },
-        { 'steps': 20, 'epsilon': 8, 'alpha': 2 },
+        { 'steps': 20, 'epsilon': 2/255, 'alpha': 2/255 },
+        { 'steps': 20, 'epsilon': 4/255, 'alpha': 2/255 },
+        { 'steps': 20, 'epsilon': 8/255, 'alpha': 2/255 },
     ]
 
     def _report_metrics(ways, shots, dataset_name, attacker_name, metrics: Dict[str, torchmetrics.Metric]):
@@ -33,6 +26,7 @@ def run_all_scenarios_for_method(model_name: str, num_tasks: int = 1000):
 
     for s in meta_scenarios:
         ways, shots = s['ways'], s['shots']
+        model.init_model(ways, shots)
 
         # TODO: do we need 95% confidence intervals, if so => implement
         metrics = {
