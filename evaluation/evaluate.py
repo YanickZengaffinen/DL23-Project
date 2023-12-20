@@ -3,6 +3,7 @@ import torchmetrics
 
 
 from evaluation.attacker import Attacker, PGDAttacker, Natural
+from evaluation.datasets import TestDataset
 from evaluation.model_wrapper import ModelWrapper
 
 models: Dict[ModelWrapper] = {
@@ -10,7 +11,7 @@ models: Dict[ModelWrapper] = {
     'Test': ModelWrapper(),
 }
 
-def run_all_scenarios_for_method(model_name: str):
+def run_all_scenarios_for_method(model_name: str, num_tasks: int = 1000):
     # Runs all the attack scenarios from the proposal on the specified model
     model = models[model_name]
 
@@ -40,10 +41,10 @@ def run_all_scenarios_for_method(model_name: str):
         } # metrics can be used to compute the final metrics but only until they are reset
         
 
-        # TODO: construct omniglot and mini-imagenet datasets for n-ways,k-shots scenario
+        # construct omniglot and mini-imagenet datasets for n-ways,k-shots scenario
         test_datasets = {
-            'Omniglot': None,
-            'MiniImageNet': None
+            'Omniglot': TestDataset('omniglot', ways, shots, num_tasks),
+            'MiniImageNet': TestDataset('mini-imagenet', ways, shots, num_tasks)
         } 
 
         for dataset_name, test_dataset in test_datasets.items():
@@ -59,7 +60,7 @@ def run_all_scenarios_for_method(model_name: str):
         
 
 
-def run_experiment(test_dataset, attacker: Attacker, model: ModelWrapper, metrics: List[torchmetrics.Metric]):
+def run_experiment(test_dataset: TestDataset, attacker: Attacker, model: ModelWrapper, metrics: List[torchmetrics.Metric]):
     # Here we trust the impl of the ModelWrapper not to make use of the following:
     # 1. The gradient information still present in the model, that could be left over from the attack
     # 2. The fact that we always attack the support data
@@ -71,7 +72,8 @@ def run_experiment(test_dataset, attacker: Attacker, model: ModelWrapper, metric
     for metric in metrics:
         metric.reset()
 
-    for (support_x, support_y), (query_x, query_y) in test_dataset:
+    for i in range(test_dataset.num_tasks):
+        (support_x, support_y), (query_x, query_y) = test_dataset.sample()
         # make sure the model's state is the way it was directly after training
         model.reset_model()
 
