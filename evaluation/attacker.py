@@ -1,3 +1,5 @@
+""" Collection of attack scenarios """
+
 import torch
 import torchattacks
 
@@ -29,7 +31,6 @@ class PGDAttacker(WhiteboxAttacker):
         self._alpha = alpha
 
     def attack(self, x: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-
         self._model_wrapper._model.eval()
         pgd_attack = torchattacks.PGD(self._model_wrapper._model, self._epsilon, self._alpha, self._steps, random_start=True)
         

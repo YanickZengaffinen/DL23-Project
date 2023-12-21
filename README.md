@@ -11,3 +11,9 @@ conda activate dl
 
 pip install -r requirements.txt
 ```
+
+## Reproduce the Results
+### Adversarial Querying
+```
+python evaluate.py --name "AQ"
+```
