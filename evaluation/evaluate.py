@@ -7,7 +7,7 @@ from evaluation.attacker import Attacker, PGDAttacker, Natural
 from datasets import get_benchmark_tasksets, TasksetWrapper
 from evaluation.model_wrapper import ModelWrapper
 
-def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000):
+def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000, seed: int = 42):
     """ 
         Runs all the attack scenarios from the proposal on the specified model
     """
@@ -40,8 +40,8 @@ def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000):
 
         # construct omniglot and mini-imagenet datasets for n-ways,k-shots scenario
         test_datasets = {
-            'Omniglot': get_benchmark_tasksets('omniglot', ways, shots, num_tasks).test,
-            'MiniImageNet': get_benchmark_tasksets('mini-imagenet', ways, shots, num_tasks).test,
+            'Omniglot': get_benchmark_tasksets('omniglot', ways, shots, num_tasks, seed=seed).test,
+            'MiniImageNet': get_benchmark_tasksets('mini-imagenet', ways, shots, num_tasks, seed=seed).test,
         } 
 
         for dataset_name, test_dataset in test_datasets.items():
