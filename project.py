@@ -316,7 +316,8 @@ num_classes = 1100
 lr = 0.0005
 
 print("Training on Omniglot.")
-# omni_model = train_model(feature_extractor, feature_s, o_train_ds, train_epochs, num_classes, lr)
+omni_model = train_model(feature_extractor, feature_s, o_train_ds, train_epochs, num_classes, lr)
+torch.save(omni_model.state_dict(), './models/omni_model.pt')
 
 # Train MiniImageNet
 feature_extractor = ResNet(depth=18, in_channels=3)
@@ -327,3 +328,4 @@ lr = 0.0005
 
 print("Training on MiniImageNet.")
 mini_model = train_model(feature_extractor, feature_s, m_train_ds, train_epochs, num_classes, lr)
+torch.save(mini_model.state_dict(), './models/mini_model.pt')
