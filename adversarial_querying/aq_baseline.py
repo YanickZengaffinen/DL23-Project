@@ -17,6 +17,15 @@ class AQBaseline(ModelWrapper):
         return self._model
     
     def init_model(self, dataset_name: str, ways: int, shots: int, fast_lr: float = 0.5):
+        """
+        Initialize the model for the given dataset and scenario.
+        Args:
+            dataset_name (str): Name of the dataset.
+            ways (int): Number of classes in the few-shot classification task.
+            shots (int): Number of support samples per class.
+            fast_lr (float, optional): Learning rate for the adaptation steps. Defaults to 0.5.
+        """
+
         assert (dataset_name in ['Omniglot', 'MiniImageNet']), "Dataset name must be in {Omniglot, MiniImageNet}"
         assert ((ways, shots) in [(5,1), (5,5)]), "Only (5,1) and (5,5) are supported for ways and shots"
 
@@ -55,7 +64,7 @@ class AQBaseline(ModelWrapper):
 
     def adapt(self, x_support: Tensor, y_support: Tensor):
         """
-        Adapt the model to the support set.
+        Adapt the model to the support set. 
         Args:
             x_support (Tensor): Support set images.
             y_support (Tensor): Support set labels.
@@ -69,19 +78,8 @@ class AQBaseline(ModelWrapper):
 
         self._model.train()  # Set the model to training mode
 
-        # # Create a DataLoader for the support set
-        # support_loader = DataLoader(
-        #     TensorDataset(x_support, y_support),
-        #     batch_size=32,  # You can adjust the batch size
-        #     shuffle=True
-        # )
-
         # Define the optimizer (adaptation steps)
         optimizer = torch.optim.Adam(self._model.parameters(), lr=self.fast_lr)
-
-        # # Adaptation loop
-        # for inputs, labels in zip(x_support, y_support):
-        #     inputs, labels = inputs.to(self.device), labels.to(self.device)
 
         # Forward pass and compute loss
         optimizer.zero_grad()
@@ -96,9 +94,11 @@ class AQBaseline(ModelWrapper):
 
 
     def forward(self, x_query: Tensor) -> Tensor:
-        # here we choose to implement custom forward logic
-        # the model has learned the tasks in the query during adaptation and should now try to predict them
-        # print(f"Run adapted model on data of shape {x_query.shape}")
-
-        # return model(x_query)
+        """
+        Forward pass of the model.
+        Args:
+            x_query (Tensor): Query set images.
+        Returns:
+            Tensor: Predicted labels.
+        """
         return self._model(x_query)
