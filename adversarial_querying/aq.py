@@ -1,18 +1,15 @@
-import random
 import os
-import numpy as np
+import random
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import learn2learn as l2l
-import torchattacks
+import numpy as np
 import matplotlib.pyplot as plt
 
-from datasets import get_benchmark_tasksets, BenchmarkTasksets
+import learn2learn as l2l
+import torchattacks
 
-import torch
-import torch.nn as nn
-from learn2learn.vision.models.resnet12 import ResNet12Backbone
+from datasets import get_benchmark_tasksets, BenchmarkTasksets
+from models import ResNet12
 
 
 class AdversarialQuerying:
@@ -60,7 +57,7 @@ class AdversarialQuerying:
         
         path = os.path.realpath(path)
         print(f"Saving model to {path}")
-        torch.save(self._trained_model, path)
+        torch.save(self._trained_model.state_dict(), path)
 
     @staticmethod
     def load_model(model: torch.nn.Module, path: str) -> None:
@@ -198,7 +195,7 @@ class AdversarialQuerying:
             model, lr=fast_lr, first_order=False
         )  # Use learn2learn's MAML model
         # print(maml)
-        opt = optim.Adam(maml.parameters(), meta_lr)
+        opt = torch.optim.Adam(maml.parameters(), meta_lr)
         loss = nn.CrossEntropyLoss(reduction="mean")
 
         validation_accuracies = []  # List to store validation accuracies
@@ -206,7 +203,7 @@ class AdversarialQuerying:
         # Meta-training loop
         for iteration in range(self.num_iterations):
             # Slowly increase the epsilon value from 0 to epsilon until halfway through the training
-            epsilon_value = self.epsilon * (iteration / (self.num_iterations / 2))
+            epsilon_value = min(self.epsilon * (iteration / (self.num_iterations / 2)), self.epsilon)
 
             opt.zero_grad()
             meta_train_error = 0.0
@@ -250,16 +247,18 @@ class AdversarialQuerying:
             print("Meta Valid Error", meta_valid_error / self.meta_batch_size)
             print("Meta Valid Accuracy", avg_valid_accuracy)
 
+            # Average the accumulated gradients and optimize
             for p in maml.parameters():
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             opt.step()
-        # Plotting the validation accuracies
-        plt.plot(validation_accuracies, label="Validation Accuracy")
-        plt.title("Validation Accuracy Over Iterations")
-        plt.xlabel("Iterations")
-        plt.ylabel("Accuracy")
-        plt.legend()
-        plt.show()
+
+        # # Plotting the validation accuracies
+        # plt.plot(validation_accuracies, label="Validation Accuracy")
+        # plt.title("Validation Accuracy Over Iterations")
+        # plt.xlabel("Iterations")
+        # plt.ylabel("Accuracy")
+        # plt.legend()
+        # plt.show()
 
         # Compute the meta-testing loss
         meta_test_error = 0.0
@@ -271,6 +270,7 @@ class AdversarialQuerying:
                 batch,
                 learner,
                 loss,
+                epsilon=epsilon_value,
             )
             meta_test_error += evaluation_error.item()
             meta_test_accuracy += evaluation_accuracy.item()
@@ -278,7 +278,7 @@ class AdversarialQuerying:
         print("Meta Test Accuracy", meta_test_accuracy / self.meta_batch_size)
 
         # Store the trained model
-        self._trained_model = maml
+        self._trained_model = maml.module
         # return trained model
         return maml
 
@@ -286,16 +286,16 @@ class AdversarialQuerying:
 if __name__ == "__main__":
     # Dataset to use, either "omniglot" or "mini-imagenet"
     dataset: str = "omniglot"
-    num_tasks: int = 1000
+    num_tasks: int = 10000
 
     # MAML parameters
     ways: int = 5
     shots: int = 1
     meta_lr: float = 0.003
     fast_lr: float = 0.5
-    meta_batch_size: int = 8#32
+    meta_batch_size: int = 16#32
     adaptation_steps: int = 1
-    num_iterations: int = 50
+    num_iterations: int = 10
 
     # CUDA parameters
     cuda: bool = False
@@ -306,10 +306,11 @@ if __name__ == "__main__":
     steps: int = 20
 
     if dataset == "omniglot":
-        model_fn = lambda: l2l.vision.models.OmniglotFC(28 ** 2, ways)
+        # model_fn = lambda: l2l.vision.models.OmniglotFC(28 ** 2, ways)
+        model_fn = lambda: ResNet12(output_size=ways, hidden_size=64, channels=1, dropblock_dropout=0, avg_pool=False)
     elif dataset == "mini-imagenet":
         # model_fn = lambda: l2l.vision.models.MiniImagenetCNN(output_size=ways)
-        model_fn = lambda: l2l.vision.models.ResNet12(output_size=ways, hidden_size=64)
+        model_fn = lambda: ResNet12(output_size=ways, hidden_size=64)
     else:
         raise NotImplementedError(
             "Dataset not supported! Use either omniglot or mini-imagenet."

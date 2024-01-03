@@ -1,0 +1,104 @@
+import os
+import torch
+from torch import Tensor
+
+from evaluation.model_wrapper import ModelWrapper
+from models import ResNet12
+
+
+class AQBaseline(ModelWrapper):
+    def __init__(self, model_direrctory: str="/Users/joelasper/Documents/ETH_Zurich/MSc/Deep_Learning/Project/DL23-Project/adversarial_querying/models"):
+        super().__init__()
+        self._model_direrctory = model_direrctory
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+    @property
+    def model(self):
+        return self._model
+    
+    def init_model(self, dataset_name: str, ways: int, shots: int, fast_lr: float = 0.5):
+        assert (dataset_name in ['Omniglot', 'MiniImageNet']), "Dataset name must be in {Omniglot, MiniImageNet}"
+        assert ((ways, shots) in [(5,1), (5,5)]), "Only (5,1) and (5,5) are supported for ways and shots"
+
+        self.dataset_name = dataset_name
+        self.ways = ways
+        self.shots = shots
+        self.fast_lr = fast_lr
+
+        self._model = None
+        self._model_weights = None
+
+        model_name = f'aq_model_{dataset_name}_{ways}w{shots}s.pth'
+        model_path = os.path.join(self._model_direrctory, model_name)
+
+        # if model name contains omniglot, load omniglot model
+        if self.dataset_name in ['omniglot', 'Omniglot']:
+            self._model = ResNet12(output_size=ways, hidden_size=64, channels=1, dropblock_dropout=0, avg_pool=False)
+        # if model name contains miniimagenet, load miniimagenet model
+        elif self.dataset_name in ['miniimagenet', 'MiniImageNet', 'mini-imagenet', 'Mini-ImageNet']:
+            self._model = ResNet12(output_size=ways, hidden_size=64)
+        else:
+            raise ValueError('Model name must contain either "omniglot" or "miniimagenet"')
+        
+        print(f"Loading model from {model_path}")
+        self._model_weights = torch.load(model_path, map_location=self.device)
+        self._model.load_state_dict(self._model_weights)
+        self._model.eval() # set model to evaluation mode
+
+        print(f"Initialize model for {ways}-way x {shots}-shot scenario on {dataset_name} dataset")
+
+    def reset_model(self):
+        # reset method must be implemented on your own!
+        # make sure you reset the last model that was loaded (so the same dataset_name, ways, shots)
+        # print(f"Resetting the model to the initial state (after training)") 
+        self._model.load_state_dict(self._model_weights)
+
+    def adapt(self, x_support: Tensor, y_support: Tensor):
+        """
+        Adapt the model to the support set.
+        Args:
+            x_support (Tensor): Support set images.
+            y_support (Tensor): Support set labels.
+        """
+        # Check if x_support and y_support have the same number of samples
+        assert (x_support.shape[0] == y_support.shape[0]), "x_support and y_support must have the same number of samples."
+
+        # Check if the model is initialized
+        if self._model is None:
+            raise ValueError("Model is not initialized.")
+
+        self._model.train()  # Set the model to training mode
+
+        # # Create a DataLoader for the support set
+        # support_loader = DataLoader(
+        #     TensorDataset(x_support, y_support),
+        #     batch_size=32,  # You can adjust the batch size
+        #     shuffle=True
+        # )
+
+        # Define the optimizer (adaptation steps)
+        optimizer = torch.optim.Adam(self._model.parameters(), lr=self.fast_lr)
+
+        # # Adaptation loop
+        # for inputs, labels in zip(x_support, y_support):
+        #     inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+        # Forward pass and compute loss
+        optimizer.zero_grad()
+        predictions = self._model(x_support)
+        loss = torch.nn.functional.cross_entropy(predictions, y_support)
+        
+        # Backward pass and optimize
+        loss.backward()
+        optimizer.step()
+
+        self._model.eval()  # Set the model back to evaluation mode
+
+
+    def forward(self, x_query: Tensor) -> Tensor:
+        # here we choose to implement custom forward logic
+        # the model has learned the tasks in the query during adaptation and should now try to predict them
+        # print(f"Run adapted model on data of shape {x_query.shape}")
+
+        # return model(x_query)
+        return self._model(x_query)
