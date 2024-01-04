@@ -11,6 +11,9 @@ import torchattacks
 from datasets import get_benchmark_tasksets, BenchmarkTasksets
 from models import ResNet12
 
+# tensorboard
+from torch.utils.tensorboard import SummaryWriter
+
 
 class AdversarialQuerying:
     def __init__(
@@ -49,6 +52,7 @@ class AdversarialQuerying:
         self.num_tasks = num_tasks
 
         self._trained_model = None
+        self.writer = SummaryWriter("/Users/joelasper/Documents/ETH_Zurich/MSc/Deep_Learning/Project/DL23-Project/adversarial_querying/runs")
 
     def save_model(self, path: str) -> None:
         """Saves the model to the given path."""
@@ -246,6 +250,12 @@ class AdversarialQuerying:
             print("Meta Train Accuracy", meta_train_accuracy / self.meta_batch_size)
             print("Meta Valid Error", meta_valid_error / self.meta_batch_size)
             print("Meta Valid Accuracy", avg_valid_accuracy)
+
+            self.writer.add_scalar('Meta Train Error', meta_train_error / self.meta_batch_size, iteration)
+            self.writer.add_scalar('Meta Train Accuracy', meta_train_accuracy / self.meta_batch_size, iteration)
+            self.writer.add_scalar('Meta Valid Error', meta_valid_error / self.meta_batch_size, iteration)
+            self.writer.add_scalar('Meta Valid Accuracy', avg_valid_accuracy, iteration)
+            self.writer.flush()
 
             # Average the accumulated gradients and optimize
             for p in maml.parameters():
