@@ -36,6 +36,7 @@ class AQBaseline(ModelWrapper):
 
         self._model = None
         self._model_weights = None
+        self._adapted_model_weights = None
 
         model_name = f'aq_model_{dataset_name}_{ways}w{shots}s.pth'
         model_path = os.path.join(self._model_direrctory, model_name)
@@ -52,8 +53,8 @@ class AQBaseline(ModelWrapper):
         print(f"Loading model from {model_path}")
         self._model_weights = torch.load(model_path, map_location=self.device)
         self._model.load_state_dict(self._model_weights)
+        print("Number of parameters in the model:", sum(p.numel() for p in self._model.parameters() if p.requires_grad))
         self._model.eval() # set model to evaluation mode
-
         print(f"Initialize model for {ways}-way x {shots}-shot scenario on {dataset_name} dataset")
 
     def reset_model(self):
@@ -79,12 +80,12 @@ class AQBaseline(ModelWrapper):
         self._model.train()  # Set the model to training mode
 
         # Define the optimizer (adaptation steps)
-        optimizer = torch.optim.Adam(self._model.parameters(), lr=self.fast_lr)
+        optimizer = torch.optim.SGD(self._model.parameters(), lr=self.fast_lr)
 
         # Forward pass and compute loss
         optimizer.zero_grad()
         predictions = self._model(x_support)
-        loss = torch.nn.functional.cross_entropy(predictions, y_support)
+        loss = torch.nn.functional.cross_entropy(predictions,  torch.argmax(y_support, dim=-1))
         
         # Backward pass and optimize
         loss.backward()
@@ -92,8 +93,10 @@ class AQBaseline(ModelWrapper):
 
         self._model.eval()  # Set the model back to evaluation mode
 
+        self._adapted_model_weights = self._model.state_dict()
 
-    def forward(self, x_query: Tensor) -> Tensor:
+
+    def forward(self, x_query: Tensor, add_noise=False) -> Tensor:
         """
         Forward pass of the model.
         Args:
@@ -101,4 +104,29 @@ class AQBaseline(ModelWrapper):
         Returns:
             Tensor: Predicted labels.
         """
-        return self._model(x_query)
+        if add_noise:
+            outs = []
+            samples = 5
+            noise_multiplier = 0.005
+
+            model = self._model
+
+            for sample in range(samples):
+                # Reset model to adapted parameters
+                model.load_state_dict(self._adapted_model_weights)
+
+                # Add some noise to the model parameters
+                with torch.no_grad():
+                    for param in model.parameters():
+                        param.add_(torch.randn_like(param) * noise_multiplier)
+
+                # Forward pass
+                outs.append(model(x_query))
+
+            # Return mean of outputs
+            return torch.stack(outs).mean(dim=0)
+        else:
+            return self._model(x_query)
+
+        
+        
