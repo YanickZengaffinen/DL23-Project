@@ -19,8 +19,6 @@ class ModelWrapper:
         self.ways = ways
         self.shots = shots
         self._model = None
-
-        
         raise NotImplementedError()
 
     def reset_model(self):
@@ -40,7 +38,7 @@ class ModelWrapper:
         # Does a scenario where only x is attacked make sense?
         # => Yes, e.g. if you are required to share your collected data with competitor. Changing the labels would be easily detectable.
         # Why is "may-or-may" not have been attacked important?
-        # => Some methods, e.g. purification, can potentially benefit from knowing if the data has been attacked or not.
+        # => Some methods, e.g. purification, can potentially benefit from knowing if the data has been attacked or not
         raise NotImplementedError()
 
     def forward(self, x_query: torch.Tensor) -> torch.Tensor:

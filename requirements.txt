@@ -1,14 +1,13 @@
+click
 torch
 torchvision
 
 hypnettorch
 learn2learn
 torchattacks
+torchmetrics
 
 scikit-learn
 matplotlib
 pandas
 numpy==1.22.4 # unfortunately, hypnettorch uses now removed numpy features
-
-mmpretrain
-torchmetrics

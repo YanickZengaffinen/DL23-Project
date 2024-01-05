@@ -3,11 +3,9 @@ import torch.nn as nn
 from torch import Tensor
 from evaluation.model_wrapper import ModelWrapper
 
-from project import net_plus_head, headC
-
 class SampleBaseline(ModelWrapper):
     def init_model(self, dataset_name: str, ways: int, shots: int):
-        # Init method must be implemented on your own!
+        # reset method must be implemented on your own!
         # you will have to deal with 
         #   - dataset_name in {Omniglot, MiniImageNet}
         #   - ways,shots in {(5,1), (5,5)} 
@@ -17,21 +15,18 @@ class SampleBaseline(ModelWrapper):
         self.shots = shots
 
         if dataset_name == "Omniglot":
-
-            # Load trained feature extractor.
-            m = torch.load('./models/omni_model.pt')
-            # Add classification head.
-            h = headC(num_classes=5, feature_size=512)
-            # Pass whole model (concatenated from the two above.) (512*3*3 is the from ResNet18)
-            self._model = net_plus_head(m, h)
-
+            self._model = nn.Sequential(
+                nn.Flatten(start_dim=1, end_dim=-1), # batch size = ways*shots during inference
+                nn.Linear(28*28, ways),
+                nn.Softmax(dim=-1)
+            )
         elif dataset_name == "MiniImageNet":
-            # Load trained feature extractor.
-            m = torch.load('./models/mini_model.pt')
-            # Add classification head. (Num of classes is 5 because it's always 5 way something.) (512*3*3 is the from ResNet18)
-            h = headC(num_classes=5, feature_size=512*3*3)
-            # Pass whole model (concatenated from the two above.)
-            self._model = net_plus_head(m, h)
+            self._model = nn.Sequential(
+                nn.MaxPool2d(kernel_size=4),
+                nn.Flatten(start_dim=1, end_dim=-1), # batch size = ways*shots during inference
+                nn.Linear(3*21*21, ways),
+                nn.Softmax(dim=-1)
+            )
 
         # self.model = torch.load(...)
         self.round = 0
@@ -41,9 +36,6 @@ class SampleBaseline(ModelWrapper):
         # reset method must be implemented on your own!
         # make sure you reset the last model that was loaded (so the same dataset_name, ways, shots)
         if self.round == 0:
-            # I think this works cause it justs reloads the models. 
-            print(self.dataset_name)
-            self.init_model(dataset_name=self.dataset_name, ways=self.ways, shots=self.shots)
             print(f"Resetting the model to the initial state (after training)")
 
         # model.weights = initial_weights
@@ -55,25 +47,12 @@ class SampleBaseline(ModelWrapper):
         if self.round == 0:
             print(f"Adapt to data of shape {x_support.shape} and labels are of shape {y_support.shape}")
 
-            loss = nn.CrossEntropyLoss()
-            optim = torch.optim.Adam(self._model.parameters(), lr=0.0005)
-            
-            predictions = self._model.forward(x_support) # Returns class probabilities.
-            l = loss(predictions, y_support)
-            optim.zero_grad()
-            l.backward()
-            optim.step()
+        # model.weights += weights that make it better
 
     def forward(self, x_query: Tensor) -> Tensor:
         # here we choose to implement custom forward logic
         # the model has learned the tasks in the query during adaptation and should now try to predict them
         if self.round == 0:
-
-            # Just inference. 
-            predictions = self._model.forward(x_query)
-            print(predictions.size())
-
-            
             print(f"Run adapted model on data of shape {x_query.shape}")
 
         self.round += 1

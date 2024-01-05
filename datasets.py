@@ -136,6 +136,8 @@ def mini_imagenet_tasksets(
             normalize,
         ])
         test_data_transforms = Compose([
+            ToPILImage(), # this code was buggy but this fixes it
+            ToTensor(),
             normalize,
         ])
     else:
@@ -209,21 +211,30 @@ def mini_imagenet_tasksets(
 
 
 def get_benchmark_tasksets(name: str, ways: int, shots: int, num_tasks: int, seed: int = 42, root: str = '~/data') -> BenchmarkTasksets:
-    benchmarks = {
-        'omniglot': omniglot_tasksets,
-        'mini-imagenet': mini_imagenet_tasksets
-    }
-
     root = os.path.expanduser(root)
-    datasets, transforms = benchmarks[name](
-        train_ways=ways,
-        train_samples=2*shots,
-        test_ways=ways,
-        test_samples=2*shots,
-        num_tasks=num_tasks,
-        root=root,
-        seed=seed
-    )
+
+    if name == 'omniglot':
+        datasets, transforms = omniglot_tasksets(
+            train_ways=ways,
+            train_samples=2*shots,
+            test_ways=ways,
+            test_samples=2*shots,
+            num_tasks=num_tasks,
+            root=root,
+            seed=seed
+        )
+    elif name == 'mini-imagenet':
+        datasets, transforms = mini_imagenet_tasksets(
+            train_ways=ways,
+            train_samples=2*shots,
+            test_ways=ways,
+            test_samples=2*shots,
+            num_tasks=num_tasks,
+            root=root,
+            seed=seed,
+            data_augmentation='lee2019'
+            
+        )
 
     train_dataset, validation_dataset, test_dataset = datasets
     train_transforms, validation_transforms, test_transforms = transforms
