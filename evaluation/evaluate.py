@@ -82,8 +82,7 @@ def run_experiment(test_dataset: TasksetWrapper, attacker: Attacker, model: Mode
         model.reset_model()
 
         # adapt the model to the support set
-        support_x_attacked = attacker.attack(support_x, support_lbls)
-        model.adapt(support_x_attacked, support_y)
+        model.adapt(support_x, support_y)
 
         # predict on the query set
         query_x_attacked = attacker.attack(query_x, query_lbls)
