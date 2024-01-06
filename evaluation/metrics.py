@@ -12,9 +12,9 @@ class ConfidenceIntervalOnAccuracy:
         self.accs = []
 
     def update(self, pred, lbls):
-        self.accs.append((torch.argmax(pred, dim=-1) == lbls).sum().item() / pred.shape[0])
+        self.accs.append(100*(torch.argmax(pred, dim=-1) == lbls).sum().item() / pred.shape[0])
     
     def compute(self):
         l,u = st.t.interval(confidence=self.interval, df=len(self.accs)-1, loc=np.mean(self.accs), scale=st.sem(self.accs))
-        return f'{100*(l+u)/2:.2f} \\pm {(u-l)/2:.2f}'
+        return f'{(l+u)/2:.2f} \\pm {(u-l)/2:.2f}'
     
