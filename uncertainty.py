@@ -38,7 +38,10 @@ def train_binary_classifiers(scenario, epochs, taskembsize, outdir):
         train_omniglot_binary(taskembsize, epochs, os.path.join(out_dir, best_model_file), os.path.join(out_dir, last_model_file))
         
     elif scenario == 'miniimagenet':
-        raise NotImplementedError()
+        out_dir = os.path.join(outdir, 'mini-imagenet')
+        os.makedirs(out_dir, exist_ok=True)
+
+        train_miniimagenet_binary(taskembsize, epochs, os.path.join(out_dir, best_model_file), os.path.join(out_dir, last_model_file))
     
 @cli.command()
 @click.option('--scenario',
@@ -63,7 +66,10 @@ def train_meta_embedding(scenario, method, taskembsize, modelfile, outdir):
         train_omniglot_meta_embedding(taskembsize, modelfile, method, os.path.join(out_dir, best_embedding_file), os.path.join(out_dir, last_embedding_file))
         
     elif scenario == 'miniimagenet':
-        raise NotImplementedError()
+        out_dir = os.path.join(outdir, 'mini-imagenet')
+        os.makedirs(out_dir, exist_ok=True)
+
+        train_miniimagenet_meta_embedding(taskembsize, modelfile, method, os.path.join(out_dir, best_embedding_file), os.path.join(out_dir, last_embedding_file))
     
     print('Created best and last meta-embedding file. Please note, that best and last do not refer to the model that was used but to the meta embedding that worked best and the last one (only relevant for maml)')
     

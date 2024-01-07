@@ -61,7 +61,7 @@ def train_binary_classifiers(train_samples: NegativeSampleDataset, val_samples: 
         print(f"\t Training: Loss = {np.array(train_losses).mean():.5f} ± {np.array(train_losses).std():.5f}, Acc = {np.array(train_accs).mean():.5f}")
 
         # Validation
-        model.eval()
+        # model.eval() # buggy for resnet batchnorm impl :/
         with torch.no_grad():
             for iteration in range(iterations_per_epoch):
                 for i in range(nr_of_classes_per_epoch):
@@ -87,6 +87,110 @@ def train_binary_classifiers(train_samples: NegativeSampleDataset, val_samples: 
         
     print("Finished Training")
 
+def train_binary_classifiers_gradually(train_samples: NegativeSampleDataset, val_samples: NegativeSampleDataset, 
+                             model: NOTEModel, optimizer: torch.optim.Optimizer, new_optimizer: torch.optim.Optimizer, loss_fn: nn.Module, nr_of_classes: int,
+                             best_model_file: str, last_model_file: str,
+                             epochs: int, iterations_per_epoch: int, nr_of_classes_per_epoch: int = 32, nr_of_samples_per_class: int = 4,
+                             device: str = 'cpu'):
+    """ 
+        Trains the binary classifiers of the NOTEModel on the given dataset by gradually introducing new classes
+
+        Note that since we cannot run multiple classifiers at the same time we instead resort to 
+        aggregating the gradients over many different classes (since hnet parameters are shared).
+
+        Parameters
+            - TODO: your normal training parameters
+            - new_optimizer: will be used to adapt the newly introduced task
+            - iterations_per_epoch: Basically, how many batches to sample in each epoch
+            - nr_of_classes_per_epoch: How many classes to sample from before doing one step (Note: we draw uniform with replacement). 
+                                       This should be large enough s.t. the model does not collapse to a single class everytime.
+            - nr_of_samples_per_class: How many positive and negative samples should be sampled from each class
+    """
+    print(f"Training Binary Classifiers")
+    
+    model.to(device)
+    best_validation_loss = float('inf')
+    current_classes = 1
+    for epoch in range(epochs):
+        print(f"Epoch {epoch}:")
+        train_losses, train_accs = [], []
+        val_losses, val_accs = [], []
+
+        # Training
+        model.train()
+        for iteration in range(iterations_per_epoch):
+            # randomly sample x times from a random class
+            class_id = random.choice(list(range(current_classes)))
+            for i in range(nr_of_classes_per_epoch):
+                optimizer.zero_grad()
+                X,y,class_id = train_samples.sample(nr_of_samples_per_class, class_id=class_id)
+                X,y = X.to(device),y.to(device)
+
+                out = F.sigmoid(model.forward_binary(X, class_id))
+                loss = loss_fn(out, y)
+                loss.backward()
+
+                train_losses.append(loss.item())
+                train_accs.append((torch.round(out) == y).sum().item() / y.shape[0])
+
+                optimizer.step()
+                del X,y
+            
+
+        print(f"\t Training: Loss = {np.array(train_losses).mean():.5f} ± {np.array(train_losses).std():.5f}, Acc = {np.array(train_accs).mean():.5f}")
+
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            for iteration in range(iterations_per_epoch):
+                for i in range(nr_of_classes_per_epoch):
+                    class_id = random.choice(range(current_classes))
+                    X,y,class_id = val_samples.sample(nr_of_samples_per_class, class_id=class_id)
+                    X,y = X.to(device),y.to(device)
+
+                    out = F.sigmoid(model.forward_binary(X, class_id))
+                    loss = loss_fn(out, y)
+
+                    val_losses.append(loss.item())
+                    val_accs.append((torch.round(out) == y).sum().item() / y.shape[0])
+
+                    del X,y
+
+        # check if the model is ready for new classes to be introduced
+        current_val_loss = np.array(val_losses).mean()
+        
+        if current_val_loss < 1.0:
+          if current_classes < nr_of_classes:
+              current_classes += 1
+              print(f'Introducing new class {current_classes}')
+              # basically train an entire epoch only on the newly introduced embedding to let it catch up
+              class_id = nr_of_classes - 1
+              for i in range(nr_of_classes_per_epoch):
+                  new_optimizer.zero_grad()
+                  X,y,class_id = train_samples.sample(nr_of_samples_per_class, class_id=class_id)
+                  X,y = X.to(device),y.to(device)
+
+                  out = F.sigmoid(model.forward_binary(X, class_id))
+                  loss = loss_fn(out, y)
+                  loss.backward()
+
+                  train_losses.append(loss.item())
+                  train_accs.append((torch.round(out) == y).sum().item() / y.shape[0])
+
+                  new_optimizer.step()
+                  del X,y
+
+              best_validation_loss = float('inf') # reset s.t. model with new class trained will get saved too
+
+        # Save the model
+        if current_val_loss < best_validation_loss:
+            best_validation_loss = current_val_loss
+            torch.save(model.state_dict(), best_model_file)
+        torch.save(model.state_dict(), last_model_file)
+
+        print(f"\t Validation: Loss = {current_val_loss:.5f} ± {np.array(val_losses).std():.5f}, Acc = {np.array(val_accs).mean():.5f}")
+        
+    print("Finished Training")
 
 def compute_mean_meta_embedding(model: NOTEModel, best_embedding_file: str, last_embedding_file: str):
     """ 
@@ -101,7 +205,7 @@ def compute_mean_meta_embedding(model: NOTEModel, best_embedding_file: str, last
 
 def compute_maml_meta_embedding(model: NOTEModel, best_embedding_file: str, last_embedding_file: str,
                         train_classes: TrainValSplitDataset, val_classes: TrainValSplitDataset, meta_lr: float = 0.003, fast_lr: float = 0.5, 
-                        meta_batch_size: int = 32, adaptation_steps: int = 2, num_iterations: int = 60000):
+                        meta_batch_size: int = 32, adaptation_steps: int = 2, num_iterations: int = 60000, device: str = 'cpu'):
     """ 
         Prepares the ideal embedding that can be used for fast-adaptation during few-shot learning
         by using MAML to find a point in space from where we can adapt to all embeddings in only a few gradient steps.
@@ -109,8 +213,10 @@ def compute_maml_meta_embedding(model: NOTEModel, best_embedding_file: str, last
     # start of from mean embedding
     mean_embedding = model.task_representations.mean(dim=0)
     model.task_representations = nn.Parameter(mean_embedding.clone().detach().unsqueeze(0))
+    model.to(device)
 
     maml = MAML(model, lr=fast_lr, first_order=False)
+    maml.to(device)
     opt = torch.optim.Adam(maml.parameters(), meta_lr) # note: maml.parameters() returns only the adaptable params of the model
     binary_loss = nn.BCELoss()
 
@@ -133,18 +239,26 @@ def compute_maml_meta_embedding(model: NOTEModel, best_embedding_file: str, last
             learner = maml.clone()
             X_support,y_support,class_id = train_cls_train.sample(2)
             X_query,y_query,_ = train_cls_val.sample(2, class_id) 
+            X_support,y_support = X_support.to(device),y_support.to(device)
+            X_query,y_query = X_query.to(device),y_query.to(device)
             query_loss, query_acc = fast_adapt(X_support, y_support, X_query, y_query, learner, binary_loss, adaptation_steps)
             query_loss.backward()
             meta_train_error += query_loss.item()
             meta_train_accuracy += query_acc.item()
 
+            del X_support, y_support, X_query, y_query
+
             # Meta-Validation
             learner = maml.clone()
             X_support,y_support,class_id = val_cls_train.sample(2)
             X_query,y_query,_ = val_cls_val.sample(2, class_id) 
+            X_support,y_support = X_support.to(device),y_support.to(device)
+            X_query,y_query = X_query.to(device),y_query.to(device)
             query_loss, query_acc = fast_adapt(X_support, y_support, X_query, y_query, learner, binary_loss, adaptation_steps)
             meta_valid_error += query_loss.item()
             meta_valid_accuracy += query_acc.item()
+
+            del X_support, y_support, X_query, y_query
 
         # Average the accumulated gradients and optimize
         for p in maml.parameters():
@@ -306,7 +420,7 @@ def val_defense(model: NOTEModel, meta_embedding_file: str,
         X_support,y_support = X_support.to(device), y_support.to(device)
 
         adapt(model, X_support, y_support, ways, loss, 
-              adaptation_steps=adaptation_steps, lr=fast_lr, half_batch_size=shots*ways)
+              adaptation_steps=adaptation_steps, lr=fast_lr, half_batch_size=shots)
 
         del X_support, y_support
 
@@ -319,7 +433,6 @@ def val_defense(model: NOTEModel, meta_embedding_file: str,
         out = model.forward(X_query, range(ways))
         accs.append((torch.argmax(out, dim=-1) == y_query).sum().item() / y_query.shape[0])
 
-        # TODO: test what happens if noise is kept constant during PGD attack instead of varying each step
         attack = PGD(model, pgd_epsilon, pgd_stepsize, pgd_steps)
         X_query_adv = attack(X_query, y_query)
 

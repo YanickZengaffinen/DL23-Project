@@ -6,6 +6,8 @@ import learn2learn as l2l
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+from torchvision.transforms import (Compose, ToPILImage, ToTensor, RandomCrop, RandomHorizontalFlip,
+                                    ColorJitter, Normalize)
 from PIL.Image import LANCZOS
 
 import matplotlib.pyplot as plt
@@ -222,12 +224,15 @@ def get_omniglot_datasets(seed: int = 42, train_cls_val_split: float = 0.33, val
     #print(f'Train Classes: {train_classes}')
     val_classes = classes[1100:1200]
     #print(f'Val Classes: {val_classes}')
+    test_classes = classes[1200:]
 
     train_cls_dataset = ConsecutiveLabelRemapDataset(FilterClassesDataset(omniglot, whitelist_classes=train_classes), train_classes)
-    val_cls_datatset = ConsecutiveLabelRemapDataset(FilterClassesDataset(omniglot, whitelist_classes=val_classes), val_classes)
+    val_cls_dataset = ConsecutiveLabelRemapDataset(FilterClassesDataset(omniglot, whitelist_classes=val_classes), val_classes)
+    test_cls_dataset = ConsecutiveLabelRemapDataset(FilterClassesDataset(omniglot, whitelist_classes=test_classes), test_classes)
 
     train_split = TrainValSplitDataset(train_cls_dataset, train_cls_val_split)
-    val_split = TrainValSplitDataset(val_cls_datatset, val_cls_val_split)
+    val_split = TrainValSplitDataset(val_cls_dataset, val_cls_val_split)
+    test_split = TrainValSplitDataset(test_cls_dataset, 0.5)
 
     if augment:
         augmentation = transforms.Compose([
@@ -236,16 +241,56 @@ def get_omniglot_datasets(seed: int = 42, train_cls_val_split: float = 0.33, val
         ])
         train_split.train = AugmentDataset(train_split.train, augmentation)
         val_split.train = AugmentDataset(val_split.train, augmentation)
+        test_split.train = AugmentDataset(test_split.train, augmentation)
 
 
     return ClassSplitDatasets(
         train_classes=train_split,
         val_classes=val_split,
-        test_classes=None # ensure test-data does not get used before evaluation
+        test_classes=test_split # ensure test-data does not get used before evaluation
     )
 
-def get_miniimagenet_datasets(seed: int = 42, train_cls_val_split: float = 0.33, val_cls_val_split: float = 0.33) -> ClassSplitDatasets:
-    raise NotImplementedError()
+def get_miniimagenet_datasets(seed: int = 42, train_cls_val_split: float = 0.33, val_cls_val_split: float = 0.33, augment: bool = True) -> ClassSplitDatasets:
+    root = '~/data'
+    root = os.path.expanduser(root)
+
+    train_cls_dataset = l2l.vision.datasets.MiniImagenet(
+        root=root,
+        mode='train',
+        download=True,
+    )
+    val_cls_dataset = l2l.vision.datasets.MiniImagenet(
+        root=root,
+        mode='validation',
+        download=True,
+    )
+
+    train_split = TrainValSplitDataset(train_cls_dataset, train_cls_val_split)
+    val_split = TrainValSplitDataset(val_cls_dataset, val_cls_val_split)
+
+    if augment:
+        train_data_transforms = Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation((-10,10)),
+            transforms.RandomResizedCrop(size=(84, 84), scale=(0.7, 1), ratio=(0.9, 1.1)),
+            lambda x: x / 255.0,
+        ])
+        test_data_transforms = Compose([
+            lambda x: x / 255.0,
+        ])
+
+        train_split.train = AugmentDataset(train_split.train, train_data_transforms)
+        train_split.val = AugmentDataset(train_split.val, test_data_transforms)
+        val_split.train = AugmentDataset(val_split.train, train_data_transforms)
+        val_split.val = AugmentDataset(val_split.val, test_data_transforms)
+
+    
+    return ClassSplitDatasets(
+        train_classes=train_split,
+        val_classes=val_split,
+        test_classes=None # ensure test-data does not get used before evaluation
+    )
+    
 
 def binary_tasks_from_fewshot(X: torch.Tensor, y: torch.Tensor, class_id: int, half_batch_size: int):
     """ 
