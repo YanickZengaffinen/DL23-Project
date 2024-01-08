@@ -3,7 +3,7 @@
 
 ![Forward path](uncertainty/figures/fewshotforwardpath.svg)
 
-*Architecture of n-way classifier: Depicts the forward path when doing few-shot classification on support set $\mathcal{S}$ and query set $\mathcal{Q}$. $\hat{\tau}_{1}^\mathcal{S} \cdots \hat{\tau}_{n}^\mathcal{S}$ are the adapted task embeddings for each of the n binary one-vs-rest classifiers.*
+*Architecture of n-way classifier: Depicts the forward path when doing few-shot classification on support set* $\mathcal{S}$ *and query set* $\mathcal{Q}$. $\hat{\tau}\_{1}^\mathcal{S} \cdots \hat{\tau}\_{n}^\mathcal{S}$ *are the adapted task embeddings for each of the n binary one-vs-rest classifiers.*
 
 ## Setup
 ### VC v14+ runtime
