@@ -29,8 +29,8 @@ class NOTEModel(nn.Module):
                             num_cond_embs=0, no_cond_weights=True, cond_in_size=0, verbose=verbose)
         elif architecture == 'mini-imagenet':
             self.resize = Resize((64,64))
-            self.mnet = ResNetIN(in_shape=(64, 64, 3), num_classes=1, use_batch_norm=True, num_feature_maps=(64,64,128,256,256), no_weights=True, verbose=verbose)
-            self.hnet = ChunkedHMLP(self.mnet.param_shapes, layers=[256, 256, 512], chunk_emb_size=128, chunk_size=1024, uncond_in_size=task_emb_size, 
+            self.mnet = ResNetIN(in_shape=(64, 64, 3), num_classes=1, use_batch_norm=True, num_feature_maps=(32,32,64,128,128), no_weights=True, verbose=verbose)
+            self.hnet = ChunkedHMLP(self.mnet.param_shapes, layers=[256, 256, 256], chunk_emb_size=64, chunk_size=4096, uncond_in_size=task_emb_size, 
                             num_cond_embs=0, no_cond_weights=True, cond_in_size=0, verbose=verbose)
 
     def enable_adversarial_protection(self, noise: float = 0.05, nr_of_samples: int = 5):
@@ -43,7 +43,7 @@ class NOTEModel(nn.Module):
 
     def fix_noise(self):
         # fixes the noise, such that the same models can be sampled many times
-        self.fixed_noise = torch.randn([self.nr_of_samples, *self.task_representations.shape]) * self.noise
+        self.fixed_noise = torch.randn([self.nr_of_samples, *self.task_representations.shape], device=self.task_representations.device) * self.noise
     
     def free_noise(self):
         self.fixed_noise = None
@@ -78,7 +78,7 @@ class NOTEModel(nn.Module):
         if self.fixed_noise is not None:
             noise_sample = self.fixed_noise.detach().clone()
         else:
-            noise_sample = torch.randn([self.nr_of_samples, *self.task_representations.shape]) * self.noise    
+            noise_sample = torch.randn([self.nr_of_samples, *self.task_representations.shape], device=self.task_representations.device) * self.noise    
         
         for i in range(self.nr_of_samples):
             ys = []

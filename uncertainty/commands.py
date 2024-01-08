@@ -247,4 +247,4 @@ def train_miniimagenet_meta_embedding(task_emb_size: int, trained_model_file: st
         compute_maml_meta_embedding(model, best_embedding_file, last_embedding_file, 
                                     train_classes=datasets.train_classes,
                                     val_classes=datasets.val_classes,
-                                    meta_lr=0.001, fast_lr=0.25, meta_batch_size=16, adaptation_steps=5, num_iterations=60000, device=device)
+                                    meta_lr=0.003, fast_lr=0.75, meta_batch_size=32, adaptation_steps=10, num_iterations=60000, device=device)
