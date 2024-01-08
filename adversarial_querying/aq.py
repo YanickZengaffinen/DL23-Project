@@ -52,7 +52,6 @@ class AdversarialQuerying:
         self.num_tasks = num_tasks
 
         self._trained_model = None
-        self.writer = SummaryWriter("/Users/joelasper/Documents/ETH_Zurich/MSc/Deep_Learning/Project/DL23-Project/adversarial_querying/runs")
 
     def save_model(self, path: str) -> None:
         """Saves the model to the given path."""
@@ -251,24 +250,11 @@ class AdversarialQuerying:
             print("Meta Valid Error", meta_valid_error / self.meta_batch_size)
             print("Meta Valid Accuracy", avg_valid_accuracy)
 
-            self.writer.add_scalar('Meta Train Error', meta_train_error / self.meta_batch_size, iteration)
-            self.writer.add_scalar('Meta Train Accuracy', meta_train_accuracy / self.meta_batch_size, iteration)
-            self.writer.add_scalar('Meta Valid Error', meta_valid_error / self.meta_batch_size, iteration)
-            self.writer.add_scalar('Meta Valid Accuracy', avg_valid_accuracy, iteration)
-            self.writer.flush()
-
             # Average the accumulated gradients and optimize
             for p in maml.parameters():
                 p.grad.data.mul_(1.0 / self.meta_batch_size)
             opt.step()
 
-        # # Plotting the validation accuracies
-        # plt.plot(validation_accuracies, label="Validation Accuracy")
-        # plt.title("Validation Accuracy Over Iterations")
-        # plt.xlabel("Iterations")
-        # plt.ylabel("Accuracy")
-        # plt.legend()
-        # plt.show()
 
         # Compute the meta-testing loss
         meta_test_error = 0.0
@@ -303,9 +289,9 @@ if __name__ == "__main__":
     shots: int = 1
     meta_lr: float = 0.003
     fast_lr: float = 0.5
-    meta_batch_size: int = 16#32
+    meta_batch_size: int = 32
     adaptation_steps: int = 1
-    num_iterations: int = 10
+    num_iterations: int = 100
 
     # CUDA parameters
     cuda: bool = False
@@ -320,7 +306,7 @@ if __name__ == "__main__":
         model_fn = lambda: ResNet12(output_size=ways, hidden_size=64, channels=1, dropblock_dropout=0, avg_pool=False)
     elif dataset == "mini-imagenet":
         # model_fn = lambda: l2l.vision.models.MiniImagenetCNN(output_size=ways)
-        model_fn = lambda: ResNet12(output_size=ways, hidden_size=64)
+        model_fn = lambda: ResNet12(output_size=ways, hidden_size=128)
     else:
         raise NotImplementedError(
             "Dataset not supported! Use either omniglot or mini-imagenet."
