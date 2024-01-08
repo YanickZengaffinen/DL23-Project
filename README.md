@@ -94,7 +94,7 @@ python evaluate.py --name "AQ" --add_noise True
 Training has been done entirely in Jupyter Notebooks. There are 2 of them:
 resnet-hypershot-mini (for mini-image net)
 resnet-hypershot-omni (for omniglot)
-They can be run as any Jupyter notebook and they will store results in a folder called models at each epoch.
+They can be run as any Jupyter notebook and they will store results in a folder called models at every epoch.
 
 #### Evaluations
 Evaluation of the Hypershot models are handled a bit separately due to some specificity of the data format used during training.
