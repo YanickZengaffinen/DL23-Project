@@ -19,7 +19,6 @@ pip install -r requirements.txt
 
 ## Reproduce the Results
 Please find the trained models in the in the main branch of this repository.
-```
 ### Ours
 #### Training
 Note how the following commands are meant for Omniglot but you can change the scenario to miniimagenet. Also you want might want to change the task embedding size (taskembsize).
@@ -59,7 +58,7 @@ python uncertainty.py val-fewshot --scenario omniglot --taskembsize 256 --modelf
 
 To measure the effect of modelling uncertainty on adversarial accuracy and standard accuracy, run: 
 ```
-python uncertainty.py val-defense --scenario omniglot --taskembsize 256 --modelfile "uncertainty/models/omniglot/best-binary-classifiers-256.pt" --metaembfile "models/omniglot/best-meta-embedding-maml-256.pt" --ways 5 --shots 5 --adaptationsteps 5 --lr 0.75 --noise 0.5 --samples 10 --pgdepsilon 0.0314 --pgdstepsize 0.008 --pgdsteps 7 --iterations 250
+python uncertainty.py val-defense --scenario omniglot --taskembsize 256 --modelfile "uncertainty/models/omniglot/best-binary-classifiers-256.pt" --metaembfile "uncertainty/models/omniglot/best-meta-embedding-maml-256.pt" --ways 5 --shots 5 --adaptationsteps 5 --lr 0.75 --noise 0.5 --samples 10 --pgdepsilon 0.0314 --pgdstepsize 0.008 --pgdsteps 7 --iterations 250
 ```
 In table 2 of the report we used: noise in {0.1, 0.5, 0.75, 1}, samples in {1, 5, 25}, noisepublic present or not. For no defense, choose noise = 0.0 and samples = 1.0. 
 Add the --noisepublic flag to make the noise known to the attacker.
