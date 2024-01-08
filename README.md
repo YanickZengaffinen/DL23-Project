@@ -101,7 +101,7 @@ In order to run the experiments, you need to run the evaluate.py file inside the
 ```
 python hypershot/evaluate.py
 ```
-If you want to run another model than the ones we ran, you will need to provide the according .pth file in the hypershot_baseline.py file. Also, for the omniglot dataset, you can comment in or out the corresponding line as indicated in the file to run with or without adversarial training.
+If you want to run another model than the ones we ran, you will need to provide the according .pth file in the hypershot_baseline.py file. Also, for the omniglot dataset, you can comment in or out the corresponding line as indicated in the file to run with or without adversarial training. If you want to run only a subset of the test suite, it can be tuned as desired inside the evaluate.py file.
 
 
 #### GR 
