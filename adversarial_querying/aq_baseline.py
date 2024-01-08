@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 
 from evaluation.model_wrapper import ModelWrapper
-from models import ResNet12
+from adversarial_querying.models import ResNet12
 
 
 class AQBaseline(ModelWrapper):

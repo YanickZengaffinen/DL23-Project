@@ -179,10 +179,12 @@ class ResNet12Backbone(nn.Module):
         self.inplanes = channels
         block = BasicBlock
         if wider:
-            # num_filters = [64, 160, 320, 640]
-            num_filters = [hidden_size] * 4
+            if hidden_size == 64:
+                num_filters = [hidden_size] * 4
+            else:
+                num_filters = [64, 64, 128, 128]
         else:
-            num_filters = [64, 128, 256, 512]
+            num_filters = [64, 128, 256, 256]
 
         self.layer1 = self._make_layer(
             block,
