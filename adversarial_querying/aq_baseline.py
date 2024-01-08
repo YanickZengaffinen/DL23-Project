@@ -7,11 +7,11 @@ from models import ResNet12
 
 
 class AQBaseline(ModelWrapper):
-    def __init__(self, model_direrctory: str="/Users/joelasper/Documents/ETH_Zurich/MSc/Deep_Learning/Project/DL23-Project/adversarial_querying/models"):
+    def __init__(self, add_noise: bool=False):
         super().__init__()
-        self._model_direrctory = model_direrctory
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        
+        self._add_noise = add_noise
+
     @property
     def model(self):
         return self._model
@@ -39,23 +39,25 @@ class AQBaseline(ModelWrapper):
         self._adapted_model_weights = None
 
         model_name = f'aq_model_{dataset_name}_{ways}w{shots}s.pth'
-        model_path = os.path.join(self._model_direrctory, model_name)
+        model_path = os.path.join("adversarial_querying", "models", model_name)
 
         # if model name contains omniglot, load omniglot model
         if self.dataset_name in ['omniglot', 'Omniglot']:
             self._model = ResNet12(output_size=ways, hidden_size=64, channels=1, dropblock_dropout=0, avg_pool=False)
         # if model name contains miniimagenet, load miniimagenet model
         elif self.dataset_name in ['miniimagenet', 'MiniImageNet', 'mini-imagenet', 'Mini-ImageNet']:
-            self._model = ResNet12(output_size=ways, hidden_size=64)
+            self._model = ResNet12(output_size=ways, hidden_size=128)
         else:
             raise ValueError('Model name must contain either "omniglot" or "miniimagenet"')
         
         print(f"Loading model from {model_path}")
-        self._model_weights = torch.load(model_path, map_location=self.device)
-        self._model.load_state_dict(self._model_weights)
+        self._model_weights = torch.load(model_path, map_location=self.device) # load model weights
+        self._model.load_state_dict(self._model_weights) # write model weights to model
         print("Number of parameters in the model:", sum(p.numel() for p in self._model.parameters() if p.requires_grad))
         self._model.eval() # set model to evaluation mode
         print(f"Initialize model for {ways}-way x {shots}-shot scenario on {dataset_name} dataset")
+        if self._add_noise:
+            print("Evaluate model with noise")
 
     def reset_model(self):
         # reset method must be implemented on your own!
@@ -96,7 +98,7 @@ class AQBaseline(ModelWrapper):
         self._adapted_model_weights = self._model.state_dict()
 
 
-    def forward(self, x_query: Tensor, add_noise=False) -> Tensor:
+    def forward(self, x_query: Tensor) -> Tensor:
         """
         Forward pass of the model.
         Args:
@@ -104,10 +106,10 @@ class AQBaseline(ModelWrapper):
         Returns:
             Tensor: Predicted labels.
         """
-        if add_noise:
+        if self._add_noise:
             outs = []
             samples = 5
-            noise_multiplier = 0.005
+            noise_multiplier = 0.01
 
             model = self._model
 
