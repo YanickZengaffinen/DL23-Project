@@ -6,6 +6,7 @@ import torchmetrics
 from evaluation.attacker import Attacker, PGDAttacker, Natural
 from datasets import get_benchmark_tasksets, TasksetWrapper
 from evaluation.model_wrapper import ModelWrapper
+from evaluation.metrics import ConfidenceIntervalOnAccuracy
 
 def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000, seed: int = 42):
     """ 
@@ -33,8 +34,8 @@ def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000, see
 
         # TODO: do we need 95% confidence intervals, if so => implement
         metrics = {
-            'Accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=ways),
-            #'95%Confidence': None
+            'Mean (%) and 95% Confidence Interval': ConfidenceIntervalOnAccuracy(interval=0.95),
+            #'Accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=ways),
         } # metrics can be used to compute the final metrics but only until they are reset
         
 
