@@ -24,7 +24,7 @@ def cli():
               help='How many epochs should be trained')
 @click.option('--taskembsize', default=256,
               help='How large should the task-embedding space be?')
-@click.option('--outdir', default='models',
+@click.option('--outdir', default='uncertainty/models',
               help='Where do you want the models to be saved')
 def train_binary_classifiers(scenario, epochs, taskembsize, outdir):
     fix_seed()
@@ -50,9 +50,9 @@ def train_binary_classifiers(scenario, epochs, taskembsize, outdir):
               help='Do you want to use maml or mean to compute the meta-embedding?')
 @click.option('--taskembsize', default=256,
               help='How large should the task-embedding space be?')
-@click.option('--modelfile', default='models/omniglot/best-binary-classifiers-256.pt',
+@click.option('--modelfile', default='uncertainty/models/omniglot/best-binary-classifiers-256.pt',
               help='Where you want to load the model from?')
-@click.option('--outdir', default='models',
+@click.option('--outdir', default='uncertainty/models',
               help='Where do you want the models to be saved')
 def train_meta_embedding(scenario, method, taskembsize, modelfile, outdir):
     fix_seed()
@@ -78,7 +78,7 @@ def train_meta_embedding(scenario, method, taskembsize, modelfile, outdir):
               help='The scenario you want to train (either omniglot or miniimagenet)')
 @click.option('--taskembsize', default=256,
               help='How large was the task embedding during training?')
-@click.option('--modelfile', default='models/omniglot/best-binary-classifiers-256.pt',
+@click.option('--modelfile', default='uncertainty/models/omniglot/best-binary-classifiers-256.pt',
               help='Where you want to load the model from?')
 def val_original(scenario, taskembsize, modelfile):
     fix_seed()
@@ -95,7 +95,7 @@ def val_original(scenario, taskembsize, modelfile):
               help='The scenario you want to train (either omniglot or miniimagenet)')
 @click.option('--taskembsize', default=256,
               help='How large was the task embedding during training?')
-@click.option('--modelfile', default='models/omniglot/best-binary-classifiers-256.pt',
+@click.option('--modelfile', default='uncertainty/models/omniglot/best-binary-classifiers-256.pt',
               help='Where you want to load the model from?')
 @click.option('--metaembfile', default='models/omniglot/best-meta-embedding-mean-256.pt',
               help='Where you want to load the meta embedding from?')
@@ -122,7 +122,7 @@ def val_binary_adaptability(scenario, taskembsize, modelfile, metaembfile, shots
               help='The scenario you want to train (either omniglot or miniimagenet)')
 @click.option('--taskembsize', default=256,
               help='How large was the task embedding during training?')
-@click.option('--modelfile', default='models/omniglot/best-binary-classifiers-256.pt',
+@click.option('--modelfile', default='uncertainty/models/omniglot/best-binary-classifiers-256.pt',
               help='Where you want to load the model from?')
 @click.option('--metaembfile', default='models/omniglot/best-meta-embedding-mean-256.pt',
               help='Where you want to load the meta embedding from?')
@@ -151,7 +151,7 @@ def val_fewshot(scenario, taskembsize, modelfile, metaembfile, ways, shots, adap
               help='The scenario you want to train (either omniglot or miniimagenet)')
 @click.option('--taskembsize', default=256,
               help='How large was the task embedding during training?')
-@click.option('--modelfile', default='models/omniglot/best-binary-classifiers-256.pt',
+@click.option('--modelfile', default='uncertainty/models/omniglot/best-binary-classifiers-256.pt',
               help='Where you want to load the model from?')
 @click.option('--metaembfile', default='models/omniglot/best-meta-embedding-mean-256.pt',
               help='Where you want to load the meta embedding from?')
