@@ -98,8 +98,8 @@ They can be run as any Jupyter notebook and they will store results in a folder 
 #### Evaluations
 Evaluation of the Hypershot models are handled a bit separately due to some specificity of the data format used during training.
 In order to run the experiments, you need to run the evaluate.py file inside the hypershot main folder. 
-```
-python hypershot/evaluate.py
+``` 
+python evaluate.py
 ```
 If you want to run another model than the ones we ran, you will need to provide the according .pth file in the hypershot_baseline.py file. Also, for the omniglot dataset, you can comment in or out the corresponding line as indicated in the file to run with or without adversarial training. If you want to run only a subset of the test suite, it can be tuned as desired in the evaluate.py file.
 

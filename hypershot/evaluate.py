@@ -9,14 +9,14 @@ from model_wrapper import ModelWrapper
 from metrics import ConfidenceIntervalOnAccuracy
 from hypershot_model.hypershot_baseline import HypershotBaseline
 
-def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 100, seed: int = 42):
+def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 1000, seed: int = 42):
     """ 
         Runs all the attack scenarios from the proposal on the specified model
     """
 
     meta_scenarios = [
         { 'ways': 5, 'shots': 1 },
-        # { 'ways': 5, 'shots': 5 },
+        { 'ways': 5, 'shots': 5 },
     ]
 
     pgd_attackers = [
@@ -44,7 +44,7 @@ def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 100, seed
 
         # construct omniglot and mini-imagenet datasets for n-ways,k-shots scenario
         test_datasets = {
-            # 'Omniglot': get_benchmark_tasksets('omniglot', ways, shots, num_tasks, seed=seed).test,
+            'Omniglot': get_benchmark_tasksets('omniglot', ways, shots, num_tasks, seed=seed).test,
             'MiniImageNet': get_benchmark_tasksets('mini-imagenet', ways, shots, num_tasks, seed=seed).test,
         } 
 
@@ -52,18 +52,18 @@ def run_all_scenarios_for_method(model: ModelWrapper, num_tasks: int = 100, seed
             model.init_model(dataset_name, ways, shots)
 
             # no attack / natural
-            run_experiment(test_dataset, Natural(), model, metrics.values())
+            run_experiment(test_dataset, Natural(), model, metrics.values(), dataset_name)
             _report_metrics(ways, shots, dataset_name, 'No', metrics)
 
             # pgd attacks
             for p in pgd_attackers:
                 attacker = PGDAttacker(model, p['steps'], p['epsilon'], p['alpha'])
-                run_experiment(test_dataset, attacker, model, metrics.values())
+                run_experiment(test_dataset, attacker, model, metrics.values(), dataset_name)
                 _report_metrics(ways, shots, dataset_name, f'PGD(steps={attacker._steps},epsilon={attacker._epsilon},alpha={attacker._alpha})', metrics)
         
 
 
-def run_experiment(test_dataset: TasksetWrapper, attacker: Attacker, model: ModelWrapper, metrics: List[torchmetrics.Metric]):
+def run_experiment(test_dataset: TasksetWrapper, attacker: Attacker, model: ModelWrapper, metrics: List[torchmetrics.Metric], dataset_name):
     """
         Evaluates the model on in a given attack scenario on some dataset
     """
@@ -79,7 +79,6 @@ def run_experiment(test_dataset: TasksetWrapper, attacker: Attacker, model: Mode
         metric.reset()
 
     for i in range(test_dataset.num_tasks):
-        print(i)
         (support_x, support_lbls), (query_x, query_lbls) = test_dataset.sample()
         support_y = F.one_hot(support_lbls, test_dataset.ways).float()
 
@@ -91,7 +90,10 @@ def run_experiment(test_dataset: TasksetWrapper, attacker: Attacker, model: Mode
 
         # predict on the query set
         # print(query_x[0, 0, 0, 0:10])
-        query_x_attacked = 255 * attacker.attack(query_x / 255.0, query_lbls)
+        if dataset_name == "MiniImageNet":
+            query_x_attacked = 255 * attacker.attack(query_x / 255.0, query_lbls)
+        else:
+            query_x_attacked = attacker.attack(query_x, query_lbls)
         # print(query_x_attacked[0, 0, 0, 0:10])
         query_y_attacked = model.forward(query_x_attacked)
 
