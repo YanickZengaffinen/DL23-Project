@@ -18,6 +18,8 @@ pip install -r requirements.txt
 ```
 
 ## Reproduce the Results
+Please find the trained models in the in the main branch of this repository.
+```
 ### Ours
 #### Training
 Note how the following commands are meant for Omniglot but you can change the scenario to miniimagenet. Also you want might want to change the task embedding size (taskembsize).
