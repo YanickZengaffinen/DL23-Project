@@ -70,17 +70,17 @@ To train Adversarial Querying using MAML, run:
 ```
 python adversarial_querying/aq.py
 ```
-You can change the dataset {omniglot, mini-imagenet} and the number of ways {1, 5} in the same file.
+You can change the dataset `{omniglot, mini-imagenet}` and the number of ways `{1, 5}` in the same file.
 
 #### Evaluations
 **AQ (MAML):**  
-To evaluate Adversarial Querying change the path to the folder containing the trained models in the file `aq_baseline.py` and run:
+To evaluate Adversarial Querying run:
 ```
 python evaluate.py --name "AQ"
 ```
 
-**AQ (MAML) + Noise:** 
-To evaluate Adversarial Querying with noise change the path to the folder containing the trained models in the file `aq_baseline.py` and run:
+**AQ (MAML) + Noise:**  
+To evaluate Adversarial Querying with noise run:
 ```
 python evaluate.py --name "AQ" --add_noise True 
 ```
