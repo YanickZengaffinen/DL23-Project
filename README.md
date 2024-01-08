@@ -1,5 +1,5 @@
 # Adversarially Robust Few-Shot Image Classification: Exploring Implicit Model Uncertainty via Task Embeddings
-TODO: here goes the abstract of the paper
+*The dual problem of few-shot learning in an adversarial setting is relevant but very challenging. We investigate the potential of introducing uncertainty on the parameters of the adapted model, trying to improve both natural and adversarial accuracy. To this extent, we introduce noise within the task embedding space of a hypernetwork that parameterizes our classifier. We demonstrate that adversarial robustness can be improved if the attacker is oblivious to the sampled noise. A comparison with state-of-the-art methods reveals that our approach needs further refinements to be competitive.*
 
 ![Forward path](uncertainty/figures/fewshotforwardpath.svg)
 
